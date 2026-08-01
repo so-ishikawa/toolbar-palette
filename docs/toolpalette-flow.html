@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ToolPalette.gup 処理フロー</title>
+<style>
+  :root {
+    --bg: #f3f5f4;
+    --surface: #ffffff;
+    --surface-2: #eaeeec;
+    --ink: #16211f;
+    --muted: #5b6b68;
+    --line: #d9dfdc;
+    --accent: #0f7d8c;
+    --accent-ink: #ffffff;
+    --accent-soft: #dbeef0;
+    --warn: #a85a1f;
+    --warn-soft: #f6e7d8;
+    --code-bg: #edf1f0;
+    --shadow: 0 1px 2px rgba(20, 30, 28, 0.07);
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, "Yu Gothic UI", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1615;
+      --surface: #121c1a;
+      --surface-2: #17221f;
+      --ink: #e3ece9;
+      --muted: #91a19d;
+      --line: #253430;
+      --accent: #55d6d6;
+      --accent-ink: #04211f;
+      --accent-soft: rgba(85, 214, 214, 0.14);
+      --warn: #e3a55d;
+      --warn-soft: rgba(227, 165, 93, 0.12);
+      --code-bg: #17221f;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1615;
+    --surface: #121c1a;
+    --surface-2: #17221f;
+    --ink: #e3ece9;
+    --muted: #91a19d;
+    --line: #253430;
+    --accent: #55d6d6;
+    --accent-ink: #04211f;
+    --accent-soft: rgba(85, 214, 214, 0.14);
+    --warn: #e3a55d;
+    --warn-soft: rgba(227, 165, 93, 0.12);
+    --code-bg: #17221f;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f5f4;
+    --surface: #ffffff;
+    --surface-2: #eaeeec;
+    --ink: #16211f;
+    --muted: #5b6b68;
+    --line: #d9dfdc;
+    --accent: #0f7d8c;
+    --accent-ink: #ffffff;
+    --accent-soft: #dbeef0;
+    --warn: #a85a1f;
+    --warn-soft: #f6e7d8;
+    --code-bg: #edf1f0;
+    --shadow: 0 1px 2px rgba(20, 30, 28, 0.07);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  header.hero {
+    position: relative;
+    margin: 0 -24px 48px;
+    padding: 56px 24px 36px;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-position: center top;
+    border-bottom: 1px solid var(--line);
+  }
+  header.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 55%, var(--bg) 100%);
+    pointer-events: none;
+  }
+  .hero-inner { position: relative; max-width: 900px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: clamp(1.7rem, 3.4vw, 2.35rem);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0.5em 0 0.4em;
+    text-wrap: balance;
+    font-weight: 700;
+  }
+
+  .hero p.lede {
+    max-width: 62ch;
+    color: var(--muted);
+    font-size: 1.02rem;
+    margin: 0;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 22px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .hero-meta code {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--ink);
+  }
+
+  section { margin-bottom: 56px; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 10px;
+  }
+  .section-head .tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 4px;
+    padding: 3px 7px;
+    white-space: nowrap;
+  }
+  .section-head h2 {
+    font-size: 1.3rem;
+    margin: 0;
+    font-weight: 700;
+  }
+  .section-sub {
+    color: var(--muted);
+    font-size: 0.95rem;
+    max-width: 66ch;
+    margin: 14px 0 20px;
+  }
+
+  .diagram-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+    overflow-x: auto;
+  }
+  .diagram-card pre.mermaid { margin: 0; }
+
+  .pitfall-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+  }
+  .pitfall {
+    background: var(--warn-soft);
+    border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line));
+    border-left: 3px solid var(--warn);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .pitfall .label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--warn);
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .pitfall p { margin: 0; font-size: 0.92rem; color: var(--ink); }
+  .pitfall p.fix { margin-top: 8px; color: var(--muted); font-size: 0.88rem; }
+  .pitfall p.fix b { color: var(--ink); font-weight: 600; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  thead th {
+    text-align: left;
+    background: var(--surface-2);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  tbody td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.fn { font-family: var(--font-mono); font-size: 0.83rem; white-space: nowrap; color: var(--accent); }
+  td.desc { color: var(--ink); }
+  .wrap-table { overflow-x: auto; border-radius: 10px; }
+
+  code.inline {
+    font-family: var(--font-mono);
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 0.1em 0.4em;
+    font-size: 0.88em;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-family: var(--font-mono);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    section { animation: rise 0.5s ease both; }
+    section:nth-of-type(2) { animation-delay: 0.05s; }
+    section:nth-of-type(3) { animation-delay: 0.1s; }
+    section:nth-of-type(4) { animation-delay: 0.15s; }
+    section:nth-of-type(5) { animation-delay: 0.2s; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  }
+
+  a { color: var(--accent); }
+  ::selection { background: var(--accent-soft); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="eyebrow">toolbar-palette / internal architecture</div>
+      <h1>ToolPalette.gup 処理フロー</h1>
+      <p class="lede">
+        パレットからドラッグ&amp;ドロップでツールバーにボタンを配置する3ds Maxプラグイン。
+        「起動時に一度だけ走る初期化」と「操作のたびに走るランタイム処理」を分けて図解する。
+      </p>
+      <div class="hero-meta">
+        <span><code>ToolPalette.gup</code> ネイティブC++ (GUP)</span>
+        <span><code>toolpalette_bootstrap.py</code> Pythonエントリ</span>
+        <span>3ds Max 2027</span>
+      </div>
+    </div>
+  </header>
+
+  <section id="architecture">
+    <div class="section-head">
+      <span class="tag">構成</span>
+      <h2>システム構成</h2>
+    </div>
+    <p class="section-sub">
+      4つの層に分かれている。ネイティブC++(<code class="inline">ToolPalette.gup</code>)が
+      3ds Max SDKに直接触れる唯一の層で、それを <code class="inline">FPStaticInterface</code>
+      経由でPythonに公開する。Python側はさらに「pymxsに触れない純粋な層」と
+      「pymxsで橋渡しするだけの薄い層」に分けてある。
+    </p>
+    <div class="diagram-card">
+<pre class="mermaid">
+flowchart TB
+    subgraph MAXCORE["3ds Max 本体 (SDK)"]
+        CORE["ICustToolbar / IActionManager<br/>MacroButtonData / ToolMacroItem<br/>CUIFrameMgr"]
+    end
+
+    subgraph GUP["ToolPalette.gup — ネイティブ C++ (GUP)"]
+        HOOKS["起動フック<br/>NOTIFY_TOOLBARS_PRE_LOAD ほか"]
+        API["ToolPaletteAPI<br/>(FPStaticInterface)"]
+    end
+
+    subgraph PYPURE["Python — 純粋 (pymxs非依存)"]
+        CONFIG["toolpalette_config.py<br/>ボタン定義データ"]
+        UI["toolpalette_ui.py<br/>PySide6 パレットUI"]
+    end
+
+    subgraph PYMXS["Python — pymxs依存"]
+        BOOT["toolpalette_bootstrap.py<br/>エントリポイント"]
+        NATIVE["toolpalette_native.py<br/>ToolPaletteBackend"]
+        MACROS["toolpalette_macros.py<br/>macroScript動的登録"]
+    end
+
+    HOOKS -->|"python.executeFile()<br/>起動時に1回"| BOOT
+    BOOT --> CONFIG
+    BOOT --> UI
+    BOOT --> NATIVE
+    BOOT --> MACROS
+    UI -->|"ドラッグ / クリック"| NATIVE
+    NATIVE -->|"pymxs.runtime.ToolPaletteAPI.*"| API
+    MACROS -->|"rt.execute(macroScript)"| CORE
+    API -->|"AddTool / WriteConfig"| CORE
+</pre>
+    </div>
+  </section>
+
+  <section id="startup">
+    <div class="section-head">
+      <span class="tag">起動</span>
+      <h2>起動シーケンス</h2>
+    </div>
+    <p class="section-sub">
+      3ds Max起動〜ツールバー復元〜Pythonブートストラップまでの流れ。
+      アイコン用Qtリソースの登録を、ツールバー復元(アイコン解決)より確実に早く終わらせることが
+      最大の設計目的になっている。
+    </p>
+    <div class="diagram-card">
+<pre class="mermaid">
+sequenceDiagram
+    participant OS as Windows
+    participant Max as 3ds Max Core
+    participant GUP as ToolPalette.gup (C++)
+    participant Py as Python Bootstrap
+
+    OS->>GUP: DLL_PROCESS_ATTACH
+    Max->>GUP: LibInitialize()
+    activate GUP
+    GUP->>GUP: RegisterToolPaletteHooks()
+    GUP->>GUP: RegisterToolPaletteQtResource() を同期実行
+    Note right of GUP: rcc登録をLibInitialize内で即実行<br/>(通知を待つと間に合わないことがある)
+    deactivate GUP
+
+    Max->>GUP: NOTIFY_TOOLBARS_PRE_LOAD
+    GUP->>GUP: OnToolbarsPreLoad() → Qtリソース再登録
+    Max->>GUP: NOTIFY_CUI_MENUS_PRE_LOAD
+    GUP->>GUP: OnCuiMenusPreLoad() → Qtリソース再登録
+    Note over Max: Workspace1.cuix からツールバー復元<br/>(ここでアイコン解決が走る)
+
+    Max->>GUP: NOTIFY_SYSTEM_STARTUP
+    activate GUP
+    GUP->>GUP: OnSystemStartupDone()
+    GUP->>GUP: UnRegisterNotification(self)
+    GUP->>Py: python.executeFile(toolpalette_bootstrap.py)
+    activate Py
+    Py->>Py: import config / ui / native / macros
+    Py->>Max: rt.execute(macroScript ...)
+    Note right of Py: サンプル3個 + ToolPalette_Open を登録
+    deactivate Py
+    GUP->>Max: RefreshAllToolbarIcons()
+    Note over Max: 全CustToolbarに ResetIconImages()<br/>→ アイコンキャッシュを破棄して再描画
+    deactivate GUP
+</pre>
+    </div>
+
+    <div class="pitfall-grid">
+      <div class="pitfall">
+        <span class="label">既知の罠 — アイコン消失</span>
+        <p>Qtリソース登録がツールバー復元より1回でも遅れると、解決失敗の結果がQIconの内部キャッシュに残り、以後登録し直しても再評価されない。</p>
+        <p class="fix"><b>対処:</b> 通知(<code class="inline">NOTIFY_TOOLBARS_PRE_LOAD</code>)だけに頼らず、<code class="inline">LibInitialize()</code>から同期的に直接登録して間に合わせる。</p>
+      </div>
+      <div class="pitfall">
+        <span class="label">既知の罠 — 起動タイミングの揺らぎ</span>
+        <p><code class="inline">LibInitialize</code>から<code class="inline">GUP::Start()</code>までの間隔が起動ごとに16ms〜26秒と大きく揺れ、通知ベースの登録だけでは再現性がなかった。</p>
+        <p class="fix"><b>対処:</b> 通知ハンドラは残しつつ、確実な同期登録を<code class="inline">LibInitialize()</code>側にも重ねて持たせる。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="drag">
+    <div class="section-head">
+      <span class="tag">ランタイム</span>
+      <h2>ドラッグ&amp;ドロップで配置</h2>
+    </div>
+    <p class="section-sub">
+      パレット上のボタンをツールバーへドラッグしたときの処理。UI層(PySide6)は
+      「どこに何を置くか」の判断を一切持たず、座標とボタン定義を渡すだけで、
+      実際の配置ロジックはすべてネイティブ側に委譲している。
+    </p>
+    <div class="diagram-card">
+<pre class="mermaid">
+sequenceDiagram
+    actor User
+    participant Btn as _DragButton (UI)
+    participant Win as ToolPaletteWindow
+    participant BE as ToolPaletteBackend (native.py)
+    participant API as ToolPaletteAPI (gup, C++)
+    participant Max as 3ds Max ツールバー
+
+    User->>Btn: mouseDown → 6px超で移動
+    Btn->>Btn: _start_drag() → QDrag.exec()
+    User->>Max: カーソルをツールバー上でドロップ
+    Btn->>Btn: exec()から復帰、setDown(False)
+    Btn->>Win: handle_drop(button_def, x, y)
+    Win->>BE: place_button(button_def, x, y)
+    BE->>API: findToolbarAtPoint(x, y)
+    API-->>BE: hwnd
+    BE->>API: findMacro(macroName, category)
+    API-->>BE: true (tblId/cmdIdを内部保持)
+    BE->>API: getLastTblId() / getLastCmdId()
+    BE->>API: getNativeButtonWidth/Height(hwnd)
+    Note right of API: 既存の純正ボタンを実測して<br/>サイズを合わせる
+    BE->>API: computeInsertPos(hwnd, dropX)
+    BE->>API: placeButton(hwnd, tblId, cmdId, ...)
+    API->>Max: MacroButtonData + ToolMacroItem<br/>→ ICustToolbar::AddTool
+    BE->>API: saveConfig()
+    API->>Max: CUIFrameMgr::WriteConfig()
+</pre>
+    </div>
+
+    <div class="pitfall-grid">
+      <div class="pitfall">
+        <span class="label">既知の罠 — 全体ハング</span>
+        <p>初期実装は<code class="inline">grabMouse()</code>のまま自前のゴーストウィンドウを新規生成しており、3ds Max全体がフリーズした(Application Hang)。</p>
+        <p class="fix"><b>対処:</b> Qt標準の<code class="inline">QDrag</code>に置き換え、プレビュー表示もQt自身に任せた。</p>
+      </div>
+      <div class="pitfall">
+        <span class="label">既知の罠 — 無関係ボタンの混入</span>
+        <p><code class="inline">QMimeData.setText()</code>(text/plain)を使うと、3ds Max純正のドロップ処理がそれを検知し、無関係なボタンを勝手に追加してしまった。</p>
+        <p class="fix"><b>対処:</b> 独自MIMEタイプ<code class="inline">application/x-toolpalette-buttonref</code>のみを使う。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="click">
+    <div class="section-head">
+      <span class="tag">ランタイム</span>
+      <h2>クリックでマクロ実行</h2>
+    </div>
+    <p class="section-sub">
+      ドラッグ閾値(6px)を超えなかった場合だけ通常クリックとして扱われ、配置ではなくマクロ実行に回る。
+    </p>
+    <div class="diagram-card">
+<pre class="mermaid">
+sequenceDiagram
+    actor User
+    participant Btn as _DragButton (UI)
+    participant Win as ToolPaletteWindow
+    participant BE as ToolPaletteBackend (native.py)
+    participant Max as 3ds Max (macros.run)
+
+    User->>Btn: mouseDown → mouseUp (6px未満)
+    Btn->>Win: handle_click(button_def)
+    Win->>BE: run_macro(button_def)
+    BE->>Max: rt.macros.run(category, macroName)
+    Max->>Max: macroScript本体を実行
+</pre>
+    </div>
+  </section>
+
+  <section id="api">
+    <div class="section-head">
+      <span class="tag">リファレンス</span>
+      <h2>公開API — ToolPaletteAPI</h2>
+    </div>
+    <p class="section-sub">
+      <code class="inline">FPStaticInterface</code>として公開され、Pythonから
+      <code class="inline">pymxs.runtime.ToolPaletteAPI.関数名(...)</code>の形で直接呼べる。
+      MAXScriptファイルを一切介さない。
+    </p>
+    <div class="wrap-table">
+      <table>
+        <thead>
+          <tr><th>関数</th><th>説明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="fn">getMaxHwnd()</td><td class="desc">3ds Maxメインウィンドウの HWND を取得する。</td></tr>
+          <tr><td class="fn">findMacro(macroName, category)</td><td class="desc">該当macroScriptを全ActionTableから検索し、見つかれば内部に tblId/cmdId を保持する。</td></tr>
+          <tr><td class="fn">getLastTblId() / getLastCmdId()</td><td class="desc">直前の findMacro が見つけた ActionTable ID / コマンドID を取得する。</td></tr>
+          <tr><td class="fn">getNativeButtonWidth/Height(hwnd)</td><td class="desc">配置先ツールバー上の純正ボタンを実測し、新規ボタンのサイズを合わせる。</td></tr>
+          <tr><td class="fn">computeInsertPos(hwnd, dropX)</td><td class="desc">ドロップX座標から挿入位置(インデックス)を算出する。</td></tr>
+          <tr><td class="fn">placeButton(hwnd, tblId, cmdId, label, tooltip, pos, iconName, wd, ht)</td><td class="desc">MacroButtonData + ToolMacroItem を組み立て、ツールバーへ実際に配置する。</td></tr>
+          <tr><td class="fn">saveConfig()</td><td class="desc">CUIFrameMgr::WriteConfig() でワークスペース設定を保存する。</td></tr>
+          <tr><td class="fn">findToolbarAtPoint(x, y)</td><td class="desc">画面座標からドロップ先のツールバー HWND を特定する。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    C:\WorkSpace\ClaudeWorkSpace\toolbar-palette — native/src/toolpalette_plugin.cpp, python/*.py の実装を基に作図
+  </footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default"
+  });
+</script>
+</body>
+</html>
