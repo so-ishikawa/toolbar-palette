@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="ToolPaletteIcons">
+    <file alias="ToolPaletteFreeze.png">ToolPaletteFreeze.png</file>
+    <file alias="ToolPaletteRedraw.png">ToolPaletteRedraw.png</file>
+    <file alias="ToolPaletteSelInfo.png">ToolPaletteSelInfo.png</file>
+    <file alias="ToolPaletteFreezeSVG.svg">ToolPaletteFreezeSVG.svg</file>
+  </qresource>
+</RCC>

@@ -1,0 +1,9 @@
+# Build artifacts (regenerate via CMake)
+native/build*/
+
+# Logs
+native_hook_log.txt
+
+# OS junk
+Thumbs.db
+.DS_Store
